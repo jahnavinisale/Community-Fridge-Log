@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Design Tokens - Color Palette */
+  --color-page: #FAF8F4;
+  --color-ink: #1C1B19;
+  --color-forest: #1F5E43;
+  --color-forest-dark: #184D37;
+  --color-forest-light: #F2F8F5;
+
+  /* Status Tokens */
+  --color-status-expired: #991B1B;
+  --color-status-expired-bg: #FEF2F2;
+  --color-status-soon: #92400E;
+  --color-status-soon-bg: #FFFBEB;
+  --color-status-ok: #064E3B;
+  --color-status-ok-bg: #ECFDF5;
+
+  /* Type Scale */
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@layer base {
+  html, body {
+    background-color: var(--color-page);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  /* High contrast accessible visible focus ring for keyboard navigation */
+  :focus-visible {
+    outline: 2px solid var(--color-forest);
+    outline-offset: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Accessible touch targets (minimum 44px for primary controls on mobile) */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}

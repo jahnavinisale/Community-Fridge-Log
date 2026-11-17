@@ -1,0 +1,12 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+dist-ssr/
+*.local

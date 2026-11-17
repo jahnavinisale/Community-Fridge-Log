@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" fill="#1F5E43"/>
+  <!-- Refrigerator Body -->
+  <rect x="15" y="10" width="34" height="44" rx="4" fill="#FAF8F4" stroke="#FAF8F4" stroke-width="1.5"/>
+  <!-- Freezer divider line -->
+  <line x1="15" y1="24" x2="49" y2="24" stroke="#1F5E43" stroke-width="2"/>
+  <!-- Freezer Door Handle -->
+  <rect x="18" y="16" width="3" height="5" rx="1.5" fill="#1F5E43"/>
+  <!-- Fridge Door Handle -->
+  <rect x="18" y="28" width="3" height="12" rx="1.5" fill="#1F5E43"/>
+  <!-- Small food safety badge dot -->
+  <circle cx="43" cy="46" r="2.5" fill="#1F5E43"/>
+</svg>
