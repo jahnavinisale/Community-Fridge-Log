@@ -1,4 +1,4 @@
-const RAW_API_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api';
+const RAW_API_URL = import.meta.env.VITE_API_URL || '/api';
 // Normalize URL by removing trailing slash if present
 const BASE_URL = RAW_API_URL.replace(/\/+$/, '');
 
