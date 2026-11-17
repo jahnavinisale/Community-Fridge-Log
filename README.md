@@ -116,12 +116,13 @@ cd client && npm run build
 
 ---
 
-## Deployment Guide
+## Deployment Guide (Vercel Monorepo - Single Project)
 
-This application is ready for production deployment with a decoupled architecture:
-- **Database:** MongoDB Atlas (Cloud Database)
-- **Backend API:** Render (Node.js Web Service)
-- **Frontend Client:** Vercel (Static Site with SPA Routing)
+This application is architected to deploy to **Vercel as ONE single full-stack project** from the repository root:
+- **Frontend:** Static React single-page application served from `client/dist` with automatic edge caching.
+- **Backend API:** Express REST API served as a Vercel Serverless Function via [`api/index.js`](file:///d:/Projects/Community%20Fridge%20Log/api/index.js).
+- **Database:** MongoDB Atlas (M0 Free Tier or higher).
+- **Routing:** Orchestrated via root [`vercel.json`](file:///d:/Projects/Community%20Fridge%20Log/vercel.json) (routes `/api/*` to the function, and all client routes to `/index.html`).
 
 ### 1. MongoDB Atlas Setup
 1. Create a free account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas).
@@ -130,54 +131,34 @@ This application is ready for production deployment with a decoupled architectur
    - Authentication Method: Password
    - Database User Privileges: Read and write to any database
 4. Under **Security > Network Access**, click **Add IP Address**:
-   - Choose **Allow Access from Anywhere** (`0.0.0.0/0`) so Render instances can connect dynamically.
+   - Choose **Allow Access from Anywhere** (`0.0.0.0/0`) so Vercel dynamic serverless instances can connect.
 5. In your cluster dashboard, click **Connect > Drivers > Node.js**:
    - Copy the connection URI:
      `mongodb+srv://<username>:<password>@cluster0.xxxx.mongodb.net/community_fridge_log?retryWrites=true&w=majority`
    - Replace `<password>` with your database user password.
 
-### 2. Backend Deployment on Render
+### 2. Deploy to Vercel (Root Monorepo)
 1. Push your repository to GitHub.
-2. Log into [Render Dashboard](https://dashboard.render.com/) and click **New > Web Service**.
-3. Connect your GitHub repository.
-4. Configure the service settings:
-   - **Name:** `community-fridge-log-api`
-   - **Region:** Closest to your users
-   - **Branch:** `main`
-   - **Root Directory:** `server`
-   - **Runtime:** `Node`
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start`
-5. Add the following **Environment Variables** in Render:
-   | Variable | Value / Description | Example |
-   | :--- | :--- | :--- |
-   | `NODE_ENV` | `production` | `production` |
-   | `PORT` | `10000` (or leave default, Render sets `PORT`) | `10000` |
-   | `MONGODB_URI` | Your MongoDB Atlas connection string | `mongodb+srv://user:pass@cluster0.mongodb.net/community_fridge_log` |
-   | `JWT_SECRET` | Strong random secret (at least 32 characters) | `e2a7f5b8c9d1e3f4a6b8c0d2e4f6a8b0` |
-   | `JWT_EXPIRES_IN` | Session token lifetime | `7d` |
-   | `CLIENT_ORIGIN` | Your deployed frontend URL on Vercel | `https://community-fridge-log.vercel.app` |
-   | `ADMIN_NAME` | Initial administrator name | `Elena Rostova` |
-   | `ADMIN_EMAIL` | Initial administrator login email | `admin@communityfridge.org` |
-   | `ADMIN_PASSWORD` | Initial administrator secure password | `AdminPass123!` |
-6. Click **Create Web Service**. Once deployed, copy your Render service URL (e.g. `https://community-fridge-log-api.onrender.com`).
-7. Test the health endpoint: `https://community-fridge-log-api.onrender.com/api/health`.
-
-### 3. Frontend Deployment on Vercel
-1. Log into [Vercel Dashboard](https://vercel.com/) and click **Add New > Project**.
-2. Import the same GitHub repository.
-3. Configure project settings:
-   - **Framework Preset:** `Vite`
-   - **Root Directory:** Click edit and select `client`
+2. Log into the [Vercel Dashboard](https://vercel.com/) and click **Add New > Project**.
+3. Import your `Community-Fridge-Log` repository.
+4. Keep the **Root Directory** as `./` (the repository root).
+5. Vercel will automatically detect `vercel.json` and use:
    - **Build Command:** `npm run build`
-   - **Output Directory:** `dist`
-4. Add the following **Environment Variable** in Vercel:
-   | Variable | Value / Description | Example |
-   | :--- | :--- | :--- |
-   | `VITE_API_URL` | Your Render API base URL with `/api` path | `https://community-fridge-log-api.onrender.com/api` |
-5. Note: SPA routing is pre-configured via [`client/vercel.json`](file:///d:/Projects/Community%20Fridge%20Log/client/vercel.json) using rewrites to prevent 404 errors on page reload.
-6. Click **Deploy**. Once finished, copy your Vercel production domain (e.g. `https://community-fridge-log.vercel.app`).
-7. Update `CLIENT_ORIGIN` in your Render Web Service environment variables to match your exact Vercel domain so CORS requests are permitted.
+   - **Output Directory:** `client/dist`
+6. Under **Environment Variables**, add the following:
+   | Variable Name | Required | Example / Recommended Value | Description |
+   | :--- | :---: | :--- | :--- |
+   | `MONGODB_URI` | **Yes** | `mongodb+srv://user:pass@cluster0.mongodb.net/community_fridge_log` | Your MongoDB Atlas connection URI |
+   | `JWT_SECRET` | **Yes** | `e2a7f5b8c9d1e3f4a6b8c0d2e4f6a8b0c1d3e5f7a9b1c3d5e7f9a1b3c5d7e9f1` | Random string for signing auth tokens (min 32 chars) |
+   | `NODE_ENV` | **Yes** | `production` | Enables production optimizations and security |
+   | `JWT_EXPIRES_IN` | Optional | `7d` | Token session lifetime (defaults to 7d) |
+   | `ADMIN_NAME` | Optional | `Elena Rostova` | Initial admin account name (auto-created on first request) |
+   | `ADMIN_EMAIL` | Optional | `admin@communityfridge.org` | Initial admin login email |
+   | `ADMIN_PASSWORD` | Optional | `AdminPass123!` | Initial admin secure password |
+7. Click **Deploy**.
+8. Once deployment finishes, your community fridge app is live at `https://<your-project>.vercel.app`!
+   - On the very first request, the database connection is cached and the admin account and sample inventory items are automatically seeded.
+   - Login at `https://<your-project>.vercel.app/login` with your admin email and password.
 
 ---
 
