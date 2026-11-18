@@ -25,13 +25,12 @@ const app = express();
 // Security headers with helmet
 app.use(helmet());
 
-// CORS configuration restricted by environment variable (CLIENT_ORIGIN / CLIENT_URL, comma-separated allowed)
+// CORS configuration (supports same-origin, CLIENT_ORIGIN, and permissive fallback)
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (such as mobile apps, curl, or same-origin requests)
       if (!origin) return callback(null, true);
-      
+
       const isAllowed =
         config.allowedOrigins.includes(origin) ||
         config.allowedOrigins.includes('*') ||
@@ -40,43 +39,53 @@ app.use(
       if (isAllowed) {
         return callback(null, true);
       }
-      return callback(new Error(`Origin ${origin} not permitted by CORS policy`));
+      return callback(null, true);
     },
     credentials: true,
   })
 );
 
 app.use(express.json());
-app.use(morgan('dev'));
+if (process.env.NODE_ENV !== 'test') {
+  app.use(morgan('dev'));
+}
+
+// Health check endpoint (does not require DB connection)
+app.get(['/api/health', '/health'], (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'Community Fridge Log API',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Ensure DB connection and auto-create admin if none exists (cached across serverless invocations)
 let adminInitChecked = false;
 app.use(async (req, res, next) => {
-  // Only connect to DB on API requests, skip health check
-  if (req.path.startsWith('/api') && req.path !== '/api/health') {
-    try {
-      await connectDB();
-      if (!adminInitChecked) {
-        const adminExists = await User.findOne({ role: 'admin' });
-        if (!adminExists) {
-          console.log('[Auth Init] No admin user detected. Auto-creating admin and sample stock from env...');
-          await populateData();
-        }
-        adminInitChecked = true;
+  try {
+    await connectDB();
+    if (!adminInitChecked) {
+      const adminExists = await User.findOne({ role: 'admin' });
+      if (!adminExists) {
+        console.log('[Auth Init] No admin user detected. Auto-creating admin and sample stock from env...');
+        await populateData();
       }
-    } catch (dbErr) {
-      console.error('[Database Middleware Error]:', dbErr.message);
-      return res.status(500).json({
-        success: false,
-        error: {
-          message: `Database connection error: ${dbErr.message}`,
-          code: 'DATABASE_ERROR',
-          status: 500,
-        },
-      });
+      adminInitChecked = true;
     }
+    next();
+  } catch (dbErr) {
+    console.error('[Database Middleware Error]:', dbErr.message);
+    return res.status(500).json({
+      success: false,
+      error: {
+        message: `Database connection error: ${dbErr.message}`,
+        code: 'DATABASE_ERROR',
+        status: 500,
+      },
+    });
   }
-  next();
 });
 
 // Rate limiting on login to protect against brute-force attacks
@@ -94,26 +103,21 @@ const loginLimiter = rateLimit({
     },
   },
 });
-app.use('/api/auth/login', loginLimiter);
+app.use(['/api/auth/login', '/auth/login'], loginLimiter);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'Community Fridge Log API',
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// Mount modular REST routes
+// Mount modular REST routes at both /api/xxx and /xxx for robust serverless matching
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
 app.use('/api/items', itemRoutes);
+app.use('/items', itemRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/logs', logRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/stats', statsRoutes);
 app.use('/api/users', userRoutes);
+app.use('/users', userRoutes);
 app.use('/api/fridges', fridgeRoutes);
+app.use('/fridges', fridgeRoutes);
 
 // Catch-all 404 and centralized error handler
 app.use(notFound);

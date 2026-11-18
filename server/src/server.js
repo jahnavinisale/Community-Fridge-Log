@@ -4,7 +4,7 @@ import { config } from './config/env.js';
 import { User } from './models/User.js';
 import { populateData } from './seed/seed.js';
 
-const startServer = async () => {
+export const startServer = async () => {
   try {
     await connectDB();
 
@@ -30,10 +30,24 @@ const startServer = async () => {
 
     process.on('SIGINT', shutdown);
     process.on('SIGTERM', shutdown);
+    return server;
   } catch (err) {
-    console.error('[Server] Fatal startup error:', err);
-    process.exit(1);
+    console.error('[Server] Fatal startup error:', err.message);
+    // Only exit process if not in serverless environment
+    if (process.env.VERCEL !== '1') {
+      process.exit(1);
+    }
+    throw err;
   }
 };
 
-startServer();
+// Only run app.listen when executed directly as a script, NEVER on import or in Vercel serverless
+const isDirectCliRun =
+  process.argv[1] &&
+  (process.argv[1].endsWith('server.js') || process.argv[1].endsWith('server'));
+
+if (isDirectCliRun && process.env.VERCEL !== '1') {
+  startServer();
+}
+
+export default app;

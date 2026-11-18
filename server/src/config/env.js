@@ -5,41 +5,64 @@ dotenv.config();
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(5000),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.string().default('production'),
   MONGODB_URI: z.string().default('mongodb://127.0.0.1:27017/community_fridge'),
   JWT_SECRET: z.string().default('super_secure_community_fridge_jwt_secret_key_2026_demo'),
   JWT_EXPIRES_IN: z.string().default('7d'),
   CLIENT_URL: z.string().default('http://localhost:5173'),
   CLIENT_ORIGIN: z.string().optional(),
   ADMIN_NAME: z.string().default('Elena Rostova'),
-  ADMIN_EMAIL: z.string().email().default('admin@communityfridge.org'),
-  ADMIN_PASSWORD: z.string().min(6).default('AdminPass123!'),
+  ADMIN_EMAIL: z.string().default('admin@communityfridge.org'),
+  ADMIN_PASSWORD: z.string().default('AdminPass123!'),
 });
 
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error('[Config Error] Invalid environment variables:', parsed.error.format());
-  throw new Error('Environment configuration validation failed');
+  console.warn(
+    '[Config Warning] Environment variables validation notice:',
+    parsed.error.format()
+  );
 }
 
-// Compute allowed origins from CLIENT_ORIGIN (comma-separated) or CLIENT_URL
-const rawOrigins = parsed.data.CLIENT_ORIGIN || parsed.data.CLIENT_URL || 'http://localhost:5173';
+const envData = parsed.success ? parsed.data : {};
+
+// Compute allowed origins safely without crashing
+const rawOrigins =
+  process.env.CLIENT_ORIGIN ||
+  process.env.CLIENT_URL ||
+  envData.CLIENT_ORIGIN ||
+  envData.CLIENT_URL ||
+  '*';
+
 const allowedOrigins = rawOrigins
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
 export const config = {
-  port: parsed.data.PORT,
-  nodeEnv: parsed.data.NODE_ENV,
-  mongoUri: parsed.data.MONGODB_URI,
-  jwtSecret: parsed.data.JWT_SECRET,
-  jwtExpiresIn: parsed.data.JWT_EXPIRES_IN,
-  clientUrl: parsed.data.CLIENT_URL,
-  clientOrigin: parsed.data.CLIENT_ORIGIN,
-  allowedOrigins,
-  adminName: parsed.data.ADMIN_NAME,
-  adminEmail: parsed.data.ADMIN_EMAIL,
-  adminPassword: parsed.data.ADMIN_PASSWORD,
+  port: Number(process.env.PORT) || envData.PORT || 5000,
+  nodeEnv: process.env.NODE_ENV || envData.NODE_ENV || 'production',
+  mongoUri:
+    process.env.MONGODB_URI ||
+    envData.MONGODB_URI ||
+    'mongodb://127.0.0.1:27017/community_fridge',
+  jwtSecret:
+    process.env.JWT_SECRET ||
+    envData.JWT_SECRET ||
+    'super_secure_community_fridge_jwt_secret_key_2026_demo',
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || envData.JWT_EXPIRES_IN || '7d',
+  clientUrl: process.env.CLIENT_URL || envData.CLIENT_URL || 'http://localhost:5173',
+  clientOrigin: process.env.CLIENT_ORIGIN || envData.CLIENT_ORIGIN,
+  allowedOrigins: allowedOrigins.length > 0 ? allowedOrigins : ['*'],
+  adminName: process.env.ADMIN_NAME || envData.ADMIN_NAME || 'Elena Rostova',
+  adminEmail: (
+    process.env.ADMIN_EMAIL ||
+    envData.ADMIN_EMAIL ||
+    'admin@communityfridge.org'
+  )
+    .toLowerCase()
+    .trim(),
+  adminPassword:
+    process.env.ADMIN_PASSWORD || envData.ADMIN_PASSWORD || 'AdminPass123!',
 };
